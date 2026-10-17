@@ -650,6 +650,20 @@ fn render_build_error(e: &BuildError) -> String {
 }
 
 fn cmd_build(args: &[String]) -> ExitCode {
+    // Validate value-taking options before toolchain probes or output writes.
+    for (i, arg) in args.iter().enumerate() {
+        if matches!(
+            arg.as_str(),
+            "-o" | "--package" | "--out-dir" | "--binding-prefix"
+        ) && args
+            .get(i + 1)
+            .map(|value| value.is_empty() || value.starts_with('-'))
+            .unwrap_or(true)
+        {
+            eprintln!("error: {} requires a non-empty value, not an option", arg);
+            return ExitCode::from(2);
+        }
+    }
     // The .hy file: the first arg ending in .hy (flag values never do).
     let file = args.iter().find(|a| a.ends_with(".hy")).cloned();
     let Some(file) = file else {
